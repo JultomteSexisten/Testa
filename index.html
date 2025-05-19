@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vertical Script Writer</title>
+  <style>
+    body {
+      background-color: white;
+      margin: 0;
+      padding: 2cm;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    #inputBox {
+      font-size: 1.5em;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+
+    #output {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 30px; /* Space between columns */
+      flex-wrap: nowrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .glyph {
+      width: 32px;
+      height: auto;
+      display: block;
+      margin: 0;
+    }
+
+    #instructionImage {
+      position: absolute;
+      top: 0px; /* moved up by 200px */
+      right: 0;
+      transform: scale(0.7);
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <input type="text" id="inputBox" placeholder="Type here using Latin alphabet...">
+  <img id="instructionImage" src="Instructions.png" alt="Instructions">
+  <div id="output"></div>
+
+  <script>
+    const inputBox = document.getElementById('inputBox');
+    const output = document.getElementById('output');
+
+    const glyphKeys = [
+      'a', 'aa', 'b', 'd', 'e', 'ee', 'ä', 'u', 'o', 'oo', 'y', 'r',
+      'l', 't', 'p', 'k', 'g', 'i', 'j', 's', 'ss', 'f', 'v', 'h',
+      'n', 'm', 'space'
+    ];
+
+    const imageMap = {};
+    glyphKeys.forEach(k => {
+      if (k !== 'space') {
+        imageMap[k] = `${k}.png`;
+        imageMap['Uppercase-' + k.toUpperCase()] = `Uppercase-${k.toUpperCase()}.png`;
+      } else {
+        imageMap[' '] = 'space.png';
+      }
+    });
+
+    let currentCol = createNewColumn();
+
+    inputBox.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        currentCol = createNewColumn(); // move to new column
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        inputBox.value = inputBox.value.slice(0, -1);
+        rerenderFromText(inputBox.value);
+        return;
+      }
+    });
+
+    inputBox.addEventListener('input', () => {
+      const newChar = inputBox.value[inputBox.value.length - 1];
+      if (!newChar || newChar === '\n') return;
+
+      const glyphs = convertToGlyphs(newChar);
+      glyphs.forEach(g => currentCol.appendChild(g));
+    });
+
+    function createNewColumn() {
+      const col = document.createElement('div');
+      col.classList.add('column');
+      output.appendChild(col);
+      return col;
+    }
+
+    function rerenderFromText(text) {
+      output.innerHTML = '';
+      currentCol = createNewColumn();
+      let i = 0;
+
+      while (i < text.length) {
+        let char = text[i];
+        if (char === '\n') {
+          currentCol = createNewColumn();
+          i++;
+          continue;
+        }
+        const glyphs = convertToGlyphs(char);
+        glyphs.forEach(g => currentCol.appendChild(g));
+        i++;
+      }
+    }
+
+    function convertToGlyphs(char) {
+      const result = [];
+      let key = char.toLowerCase();
+
+      // Check for special double-letter glyphs
+      if (char === 'a' && inputBox.value.includes('aa')) {
+        key = 'aa';
+      } else if (char === 'e' && inputBox.value.includes('ee')) {
+        key = 'ee';
+      } else if (char === 's' && inputBox.value.includes('ss')) {
+        key = 'ss';
+      } else if (char === 'o' && inputBox.value.includes('oo')) {
+        key = 'oo';
+      }
+
+      if (char === ' ') {
+        key = ' ';
+      }
+
+      if (char === char.toUpperCase() && char !== char.toLowerCase()) {
+        key = 'Uppercase-' + char.toUpperCase();
+      }
+
+      if (imageMap[key]) {
+        const img = document.createElement('img');
+        img.src = imageMap[key];
+        img.classList.add('glyph');
+        result.push(img);
+      }
+
+      return result;
+    }
+  </script>
+</body>
+</html>
